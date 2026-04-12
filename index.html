@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Expense Simplifier</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="logo">
+      <div class="logo-icon">🧮</div>
+      <div>
+        <h1>Expense Simplifier</h1>
+        <p>✦ Graph-based debt optimization algorithm</p>
+      </div>
+    </div>
+    <div class="header-right">
+      <span id="algo-status">Demo data loaded</span>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <!-- STAT CARDS -->
+    <div class="stat-grid">
+      <div class="stat blue">
+        <div class="stat-l"><p>Total People</p><h2 id="sc-people">0</h2></div>
+        <div class="stat-icon">👥</div>
+      </div>
+      <div class="stat purple">
+        <div class="stat-l"><p>Expenses</p><h2 id="sc-exp">0</h2></div>
+        <div class="stat-icon">🧾</div>
+      </div>
+      <div class="stat green">
+        <div class="stat-l"><p>Total Amount</p><h2 id="sc-amt">₹0</h2></div>
+        <div class="stat-icon">📄</div>
+      </div>
+      <div class="stat orange">
+        <div class="stat-l"><p>Optimized</p><h2 id="sc-opt">—</h2></div>
+        <div class="stat-icon">📉</div>
+      </div>
+    </div>
+
+    <!-- TAB BAR -->
+    <div class="tab-bar">
+      <div class="tabs">
+        <button class="tab active" onclick="switchTab('setup')">Setup</button>
+        <button class="tab" onclick="switchTab('graph')">Graph View</button>
+        <button class="tab" onclick="switchTab('analysis')">Analysis</button>
+        <button class="tab" onclick="switchTab('settlement')">Settlement</button>
+      </div>
+      <div class="actions">
+        <button class="btn btn-outline" onclick="clearAll()">Clear All</button>
+        <button class="btn btn-purple" onclick="openModal('person')">👤 Add Person</button>
+        <button class="btn btn-green" onclick="openModal('expense')">+ Add Expense</button>
+      </div>
+    </div>
+
+    <!-- ── SETUP TAB ── -->
+    <div class="panel active" id="panel-setup">
+      <div class="card mb20">
+        <div class="card-header">
+          <div>
+            <div class="card-title">People (<span id="p-count">0</span>)</div>
+            <div class="card-sub">Members in this expense group</div>
+          </div>
+          <button class="btn btn-purple btn-sm" onclick="openModal('person')">+ Add</button>
+        </div>
+        <div class="card-body">
+          <div class="people-grid" id="people-grid">
+            <div class="empty-state"><p>No people yet</p><span>Click "Add Person" to get started</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Expenses (<span id="e-count">0</span>)</div>
+            <div class="card-sub">All shared expenses in the group</div>
+          </div>
+          <button class="btn btn-green btn-sm" onclick="openModal('expense')">+ Add</button>
+        </div>
+        <div id="exp-list">
+          <div class="empty-state" style="padding:32px">
+            <p>No expenses logged</p><span>Click "Add Expense" to log one</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── GRAPH VIEW TAB ── -->
+    <div class="panel" id="panel-graph">
+      <div class="graphs-row">
+        <div class="card mb16">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Original Debt Graph</div>
+              <div class="card-sub">All direct debts before optimization</div>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="g-canvas-wrap"><canvas id="c-orig" height="280"></canvas></div>
+            <div class="g-legend">
+              <div class="g-legend-item"><div class="g-legend-line"></div>Debt flow</div>
+              <div class="g-legend-item"><div class="g-legend-dot"></div>Person</div>
+            </div>
+          </div>
+        </div>
+        <div class="card mb16">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Optimized Debt Graph</div>
+              <div class="card-sub">Simplified using graph algorithm</div>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="g-canvas-wrap"><canvas id="c-opt" height="280"></canvas></div>
+            <div class="g-legend">
+              <div class="g-legend-item"><div class="g-legend-line"></div>Debt flow</div>
+              <div class="g-legend-item"><div class="g-legend-dot"></div>Person</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="algo-info">
+        <h3>How the Graph Algorithm Works</h3>
+        <div class="algo-step"><span class="algo-n">1.</span><span><strong>Graph Representation:</strong> Each person is a node, and each debt is a directed edge with a weight (amount).</span></div>
+        <div class="algo-step"><span class="algo-n">2.</span><span><strong>Balance Calculation:</strong> Calculate net balance for each node (total owed − total owing).</span></div>
+        <div class="algo-step"><span class="algo-n">3.</span><span><strong>Greedy Simplification:</strong> Repeatedly match the largest creditor with the largest debtor, settling as much as possible in one transaction.</span></div>
+        <div class="algo-step"><span class="algo-n">4.</span><span><strong>Result:</strong> The minimum number of edges (transactions) needed to zero out all balances — provably optimal at O(n log n).</span></div>
+      </div>
+    </div>
+
+    <!-- ── ANALYSIS TAB ── -->
+    <div class="panel" id="panel-analysis">
+      <div class="card mb20">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Net Balances Overview</div>
+            <div class="card-sub">Positive values = owed money · Negative values = owes money</div>
+          </div>
+        </div>
+        <div class="card-body"><canvas id="c-bar" height="200"></canvas></div>
+      </div>
+      <div class="card-title mb16">Individual Balances</div>
+      <div class="ind-grid" id="ind-grid">
+        <div class="empty-state"><p>No data yet</p></div>
+      </div>
+    </div>
+
+    <!-- ── SETTLEMENT TAB ── -->
+    <div class="panel" id="panel-settlement">
+      <div class="settle-hero">
+        <div class="sh-left">
+          <p>Optimized Transactions</p>
+          <div class="sh-nums">
+            <span class="sh-big" id="sh-n">—</span>
+            <span class="sh-slash">/</span>
+            <span class="sh-total" id="sh-d">—</span>
+          </div>
+          <div class="sh-sub" id="sh-saved">Add expenses and run analysis</div>
+        </div>
+        <div class="sh-right">
+          <div class="sh-pct">📉 <span id="sh-pct">0%</span></div>
+          <div class="sh-pct-lbl">reduction</div>
+        </div>
+      </div>
+
+      <div class="card mb16">
+        <div class="card-body">
+          <div class="settle-plan-hdr">
+            <div class="settle-check">✓</div>
+            <div>
+              <div class="settle-title">Optimized Settlement Plan</div>
+              <div class="settle-sub-txt">Minimum transactions needed to settle all debts</div>
+            </div>
+          </div>
+          <div id="settle-rows">
+            <div class="empty-state"><p>No settlements yet</p><span>Add expenses to compute the optimal plan</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Original Transactions (Without Optimization)</div>
+            <div class="card-sub">What you would need without the algorithm</div>
+          </div>
+        </div>
+        <div id="orig-rows">
+          <div class="empty-state" style="padding:24px"><p>No data yet</p></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+
+  <!-- PERSON MODAL -->
+  <div class="overlay" id="modal-person" onclick="if(event.target===this)closeModal('person')">
+    <div class="modal">
+      <div class="modal-hdr">
+        <h3>Add Person</h3>
+        <button class="modal-close" onclick="closeModal('person')">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="mfield">
+          <label>Full Name</label>
+          <input type="text" id="inp-pname" placeholder="Enter name..." onkeydown="if(event.key==='Enter')submitPerson()" />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-cancel" onclick="closeModal('person')">Cancel</button>
+        <button class="btn-submit blue" onclick="submitPerson()">Add Person</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- EXPENSE MODAL -->
+  <div class="overlay" id="modal-expense" onclick="if(event.target===this)closeModal('expense')">
+    <div class="modal">
+      <div class="modal-hdr">
+        <h3>Add Expense</h3>
+        <button class="modal-close" onclick="closeModal('expense')">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="mfield">
+          <label>Description</label>
+          <input type="text" id="inp-desc" placeholder="e.g. Hotel, Dinner, Taxi..." />
+        </div>
+        <div class="mrow">
+          <div class="mfield">
+            <label>Paid By</label>
+            <select id="inp-paidby"><option value="">Select person</option></select>
+          </div>
+          <div class="mfield">
+            <label>Total Amount (₹)</label>
+            <input type="number" id="inp-amt" placeholder="0.00" min="0" step="0.01" />
+          </div>
+        </div>
+        <div class="mfield">
+          <label>Split Among</label>
+          <div class="split-chips" id="split-chips"></div>
+        </div>
+        <div class="mfield-hint">Each selected person pays an equal share</div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-cancel" onclick="closeModal('expense')">Cancel</button>
+        <button class="btn-submit green" onclick="submitExpense()">Add Expense</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div class="toast" id="toast"></div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
