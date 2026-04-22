@@ -1,90 +1,47 @@
 import { useState } from "react";
+import { UserPlus, X } from "lucide-react";
 
-export default function MembersPanel({ members, onExpenseAdd }) {
-  const [form, setForm] = useState({
-    payer: members[0] || "",
-    description: "",
-    amount: "",
-    splitType: "equal",
-    participants: []
-  });
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setForm((prev) => ({
-      ...prev,
-      [name]: value
-    }));
-  };
+export default function MembersPanel({ members, onAddMember, onRemoveMember }) {
+  const [name, setName] = useState("");
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onExpenseAdd({
-      payer: form.payer,
-      description: form.description,
-      amount: Number(form.amount),
-      participants: form.participants.length ? form.participants : members
-    });
-
-    setForm((prev) => ({
-      ...prev,
-      description: "",
-      amount: "",
-      splitType: "equal"
-    }));
-  }
+    if (!name.trim()) return;
+    onAddMember(name);
+    setName("");
+  };
 
   return (
-    <section className="card panel-span-2">
+    <section className="card">
       <div className="section-head">
-        <h3>Add Expense</h3>
-        <p>Capture payer, amount, and expense description.</p>
+        <h3>Members</h3>
+        <p>Manage the people in your group.</p>
       </div>
-      <form className="expense-form" onSubmit={handleSubmit}>
-        <label>
-          Payer
-          <select name="payer" value={form.payer} onChange={handleChange}>
-            {members.map((member) => (
-              <option key={member} value={member}>
-                {member}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label>
-          Description
-          <input
-            type="text"
-            name="description"
-            placeholder="Dinner, fuel, subscription..."
-            value={form.description}
-            onChange={handleChange}
-          />
-        </label>
-
-        <label>
-          Amount
-          <input
-            type="number"
-            name="amount"
-            placeholder="Enter amount"
-            value={form.amount}
-            onChange={handleChange}
-            min="1"
-          />
-        </label>
-
-        <label>
-          Split Type
-          <select name="splitType" value={form.splitType} onChange={handleChange}>
-            <option value="equal">Equal</option>
-            <option value="custom">Custom</option>
-            <option value="percentage">Percentage</option>
-          </select>
-        </label>
-
-        <button type="submit">Add Expense</button>
+      <div className="member-list">
+        {members.map((member) => (
+          <div className="pill member-pill" key={member}>
+            <span>{member}</span>
+            <button
+              className="pill-remove"
+              onClick={() => onRemoveMember(member)}
+              aria-label={`Remove ${member}`}
+            >
+              <X size={14} />
+            </button>
+          </div>
+        ))}
+      </div>
+      <form className="inline-form" onSubmit={handleSubmit}>
+        <input
+          type="text"
+          placeholder="Add a member..."
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+        />
+        <button type="submit">
+          <UserPlus size={16} />
+          <span>Add</span>
+        </button>
       </form>
     </section>
   );

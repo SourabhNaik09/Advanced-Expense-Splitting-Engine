@@ -4,6 +4,7 @@ import SummaryCards from "./components/SummaryCards";
 import ExpenseForm from "./components/ExpenseForm";
 import MembersPanel from "./components/MembersPanel";
 import SettlementsTable from "./components/SettlementsTable";
+import BalanceChart from "./components/BalanceChart";
 import ActivityPanel from "./components/ActivityPanel";
 
 const initialMembers = ["Aarav", "Bhavna", "Charan", "Divya"];
@@ -35,10 +36,24 @@ export default function App() {
     }
   ]);
   const [settlements, setSettlements] = useState([]);
+  const [balances, setBalances] = useState({});
   const [loading, setLoading] = useState(false);
+  const [toast, setToast] = useState(null);
 
+  /* ---- Toast helper ---- */
+  function showToast(message, type = "success") {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  }
+
+  /* ---- Recalculate settlements on any data change ---- */
   useEffect(() => {
     async function calculate() {
+      if (members.length === 0) {
+        setSettlements([]);
+        setBalances({});
+        return;
+      }
       setLoading(true);
       try {
         const res = await fetch("/api/settle", {
@@ -46,10 +61,13 @@ export default function App() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ members, expenses })
         });
+        if (!res.ok) throw new Error(`Server responded ${res.status}`);
         const data = await res.json();
         setSettlements(data.settlements || []);
+        setBalances(data.balances || {});
       } catch (error) {
         console.error("Settlement error:", error);
+        showToast("Failed to calculate settlements. Is the server running?", "error");
       } finally {
         setLoading(false);
       }
@@ -57,20 +75,38 @@ export default function App() {
     calculate();
   }, [members, expenses]);
 
+  /* ---- Derived stats ---- */
   const totalExpense = useMemo(
     () => expenses.reduce((sum, item) => sum + Number(item.amount || 0), 0),
     [expenses]
   );
 
-  const activeGroups = 1;
   const pendingSettlements = settlements.length;
 
+  /* ---- Member CRUD ---- */
   function handleAddMember(name) {
     const cleaned = name.trim();
-    if (!cleaned || members.includes(cleaned)) return;
+    if (!cleaned || members.includes(cleaned)) {
+      if (members.includes(cleaned)) showToast("Member already exists", "error");
+      return;
+    }
     setMembers((prev) => [...prev, cleaned]);
+    showToast(`${cleaned} added to the group`);
   }
 
+  function handleRemoveMember(name) {
+    setMembers((prev) => prev.filter((m) => m !== name));
+    // Also remove from participants of existing expenses
+    setExpenses((prev) =>
+      prev.map((exp) => ({
+        ...exp,
+        participants: exp.participants.filter((p) => p !== name)
+      }))
+    );
+    showToast(`${name} removed from the group`);
+  }
+
+  /* ---- Expense CRUD ---- */
   function handleAddExpense(expense) {
     setExpenses((prev) => [
       {
@@ -80,38 +116,54 @@ export default function App() {
       },
       ...prev
     ]);
+    showToast("Expense added successfully");
+  }
+
+  function handleDeleteExpense(id) {
+    setExpenses((prev) => prev.filter((exp) => exp.id !== id));
+    showToast("Expense deleted");
   }
 
   return (
     <div className="app-shell">
+      {toast && (
+        <div className={`toast toast-${toast.type}`}>
+          {toast.message}
+        </div>
+      )}
       <Header />
       <main className="dashboard-grid">
-        <section className="hero card">
+        <section className="hero">
           <div>
-            <p className="eyebrow">Smart financial coordination</p>
-            <h1>Advance Expense Splitting Engine</h1>
+            <span className="eyebrow">⚡ Expense Engine</span>
+            <h1>Smart group<br />settlements</h1>
             <p className="hero-copy">
-              Track group expenses, compute net balances, and generate minimum
-              settlement transactions through an optimized workflow.
+              Add expenses, manage members, and let the graph-based algorithm
+              compute the fewest transactions to settle all debts.
             </p>
           </div>
           <div className="hero-badge">
             <span>Algorithm</span>
-            <strong>Minimum Cash Flow</strong>
+            <strong>Min Cash Flow</strong>
           </div>
         </section>
 
         <SummaryCards
           totalExpense={totalExpense}
           membersCount={members.length}
-          activeGroups={activeGroups}
           pendingSettlements={pendingSettlements}
+          expenseCount={expenses.length}
         />
 
         <ExpenseForm members={members} onAddExpense={handleAddExpense} />
-        <MembersPanel members={members} onAddMember={handleAddMember} />
+        <MembersPanel
+          members={members}
+          onAddMember={handleAddMember}
+          onRemoveMember={handleRemoveMember}
+        />
         <SettlementsTable settlements={settlements} loading={loading} />
-        <ActivityPanel expenses={expenses} />
+        <BalanceChart balances={balances} />
+        <ActivityPanel expenses={expenses} onDelete={handleDeleteExpense} />
       </main>
     </div>
   );

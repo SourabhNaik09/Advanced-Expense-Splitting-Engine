@@ -2,18 +2,42 @@ export function calculateSettlements(members, expenses) {
   const balances = Object.fromEntries(members.map((member) => [member, 0]));
 
   for (const expense of expenses) {
+    const amount = Number(expense.amount);
+    const payer = expense.payer;
+    const splitType = expense.splitType || "equal";
     const participants = expense.participants?.length
       ? expense.participants
       : members;
 
-    const share = Number(expense.amount) / participants.length;
-    balances[expense.payer] += Number(expense.amount);
+    // Credit the payer
+    balances[payer] = (balances[payer] || 0) + amount;
 
-    for (const person of participants) {
-      balances[person] -= share;
+    if (splitType === "custom" && expense.customAmounts) {
+      // Custom: each participant owes their specified amount
+      for (const [person, customAmt] of Object.entries(expense.customAmounts)) {
+        if (balances[person] !== undefined) {
+          balances[person] -= Number(customAmt);
+        }
+      }
+    } else if (splitType === "percentage" && expense.percentages) {
+      // Percentage: each participant owes their percentage of the total
+      for (const [person, pct] of Object.entries(expense.percentages)) {
+        if (balances[person] !== undefined) {
+          balances[person] -= Math.round((amount * Number(pct)) / 100 * 100) / 100;
+        }
+      }
+    } else {
+      // Equal split (default)
+      const share = amount / participants.length;
+      for (const person of participants) {
+        if (balances[person] !== undefined) {
+          balances[person] -= share;
+        }
+      }
     }
   }
 
+  // Separate into creditors and debtors
   const creditors = [];
   const debtors = [];
 
@@ -23,9 +47,11 @@ export function calculateSettlements(members, expenses) {
     if (rounded < 0) debtors.push({ name, amount: Math.abs(rounded) });
   }
 
+  // Sort descending for greedy matching
   creditors.sort((a, b) => b.amount - a.amount);
   debtors.sort((a, b) => b.amount - a.amount);
 
+  // Greedy minimum cash-flow settlement
   const settlements = [];
   let i = 0;
   let j = 0;
